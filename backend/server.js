@@ -26,6 +26,10 @@ const openai = new OpenAI({
 // Cache for descriptions to avoid repeated LLM calls (persists across requests)
 const descriptionCache = new Map();
 
+// Cache for API responses based on date range: { 'start-end': { ledger: [], summary: {}, timestamp: Date } }
+const apiCache = new Map();
+const CACHE_DURATION = 1000 * 60 * 60; // 1 hour cache duration
+
 // Category classification keywords
 const CATEGORY_KEYWORDS = {
   'Income1': ['income1'],
@@ -123,10 +127,34 @@ async function fetchAllPages(query) {
 
 // API Routes
 
+// Helper function to get cache key
+function getCacheKey(start, end) {
+  return `${start || 'all'}-${end || 'all'}`;
+}
+
+// Helper function to check if cache is valid
+function isCacheValid(cacheEntry) {
+  if (!cacheEntry || !cacheEntry.timestamp) return false;
+  const age = Date.now() - cacheEntry.timestamp;
+  return age < CACHE_DURATION;
+}
+
 // Get all ledger entries with optional time filtering
 app.get('/api/ledger', async (req, res) => {
   try {
-    const { start, end } = req.query;
+    const { start, end, forceRefresh } = req.query;
+    const cacheKey = getCacheKey(start, end);
+    
+    // Check cache first (unless forceRefresh is true)
+    if (forceRefresh !== 'true') {
+      const cached = apiCache.get(cacheKey);
+      if (cached && isCacheValid(cached)) {
+        console.log(`✅ Cache hit for ${cacheKey}`);
+        return res.json(cached.ledger);
+      }
+    }
+
+    console.log(`🔄 Fetching from Notion for ${cacheKey}`);
     
     // Build query with optional date filter
     const query = {
@@ -204,6 +232,12 @@ app.get('/api/ledger', async (req, res) => {
       };
     }));
 
+    // Cache the result
+    apiCache.set(cacheKey, {
+      ledger: entries,
+      timestamp: Date.now()
+    });
+
     res.json(entries);
   } catch (error) {
     console.error('Error fetching ledger:', error);
@@ -214,7 +248,19 @@ app.get('/api/ledger', async (req, res) => {
 // Get categories summary (supports time filtering via query params)
 app.get('/api/summary', async (req, res) => {
   try {
-    const { start, end } = req.query;
+    const { start, end, forceRefresh } = req.query;
+    const cacheKey = `summary-${getCacheKey(start, end)}`;
+    
+    // Check cache first (unless forceRefresh is true)
+    if (forceRefresh !== 'true') {
+      const cached = apiCache.get(cacheKey);
+      if (cached && isCacheValid(cached)) {
+        console.log(`✅ Cache hit for ${cacheKey}`);
+        return res.json(cached.summary);
+      }
+    }
+
+    console.log(`🔄 Fetching summary from Notion for ${cacheKey}`);
     
     // Build query with optional date filter
     const query = {
@@ -285,6 +331,12 @@ app.get('/api/summary', async (req, res) => {
       }
     }
 
+    // Cache the result
+    apiCache.set(cacheKey, {
+      summary: summary,
+      timestamp: Date.now()
+    });
+
     res.json(summary);
   } catch (error) {
     console.error('Error fetching summary:', error);
@@ -295,6 +347,10 @@ app.get('/api/summary', async (req, res) => {
 // Add new entry
 app.post('/api/ledger', async (req, res) => {
   try {
+    // Clear cache when new entry is added
+    apiCache.clear();
+    console.log('🔄 Cache cleared after adding new entry');
+    
     const { date, description, payment, account, category } = req.body;
 
     // Auto-classify if category not provided
