@@ -23,7 +23,7 @@ function App() {
   const dataCache = useRef({});
 
   // Fetch full data first to get min/max dates
-  const fetchFullData = async () => {
+  const fetchFullData = useCallback(async () => {
     try {
       const fullLedgerRes = await axios.get('/api/ledger');
       setFullLedger(fullLedgerRes.data);
@@ -49,7 +49,7 @@ function App() {
     } catch (err) {
       console.error('Error fetching full data:', err);
     }
-  };
+  }, [startDate, endDate]);
 
   const fetchData = useCallback(async (forceRefresh = false) => {
     const cacheKey = `${startDate}-${endDate}`;
@@ -92,7 +92,7 @@ function App() {
 
   useEffect(() => {
     fetchFullData();
-  }, []);
+  }, [fetchFullData]);
 
   useEffect(() => {
     if (fullLedger.length > 0) {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import './ChartView.css';
 
 const ChartView = ({ ledger, summary }) => {

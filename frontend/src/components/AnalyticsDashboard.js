@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
 import './AnalyticsDashboard.css';
@@ -13,7 +13,7 @@ const AnalyticsDashboard = ({ startDate, endDate }) => {
   const analyticsCache = useRef({});
   const balanceCache = useRef(null);
 
-  const fetchAnalytics = async (forceRefresh = false) => {
+  const fetchAnalytics = useCallback(async (forceRefresh = false) => {
     const cacheKey = `${startDate}-${endDate}`;
     
     // Check cache first
@@ -48,12 +48,12 @@ const AnalyticsDashboard = ({ startDate, endDate }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [startDate, endDate]);
 
   useEffect(() => {
     fetchAnalytics();
     // Removed auto-refresh - data is now cached and only fetched when date range changes
-  }, [startDate, endDate]);
+  }, [startDate, endDate, fetchAnalytics]);
 
   // Process data for Daily charts
   const dailyData = useMemo(() => {
