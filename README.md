@@ -132,13 +132,13 @@ A modern web application for managing your accounting ledger with Notion integra
 
 3. **Edit** `.env` with your credentials:
    ```env
-   NOTION_API_KEY=你的Notion密钥
-   NOTION_DATABASE_ID=244005e49609808db6cbcffa77c3a494
+   NOTION_API_KEY=你的Notion密钥（以secret_或你的Notion密钥开头）
+   NOTION_DATABASE_ID=你的数据库ID（32位字符）
    PORT=3001
    OPENAI_API_KEY=你的OpenAI密钥（以sk-开头）
    ```
 
-   **Replace** with your actual values!
+   **⚠️ 重要**: 使用你自己的实际密钥，不要使用示例值！
 
 #### 中文配置：
 创建`backend/.env`文件并填入：
